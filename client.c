@@ -20,33 +20,27 @@ void parse_args(int argc, char **argv, char **host, char **port, char **mode) {
             if (i + 1 < argc) {
                 *host = argv[i + 1];
                 i++;
-            }
-            else {
+            } else {
                 fprintf(stderr, "Missing argument for option -h\n");
                 exit(1);
             }
-        }
-        else if (strcmp(argv[i], "-p") == 0) {
+        } else if (strcmp(argv[i], "-p") == 0) {
             if (i + 1 < argc) {
                 *port = argv[i + 1];
                 i++;
-            }
-            else {
+            } else {
                 fprintf(stderr, "Missing argument for option -p\n");
                 exit(1);
             }
-        }
-        else if (strcmp(argv[i], "-m") == 0) {
+        } else if (strcmp(argv[i], "-m") == 0) {
             if (i + 1 < argc) {
                 *mode = argv[i + 1];
                 i++;
-            }
-            else {
+            } else {
                 fprintf(stderr, "Missing argument for option -m\n");
                 exit(1);
             }
-        }
-        else {
+        } else {
             fprintf(stderr, "Unknown option %s\n", argv[i]);
             exit(1);
         }
