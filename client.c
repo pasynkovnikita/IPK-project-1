@@ -52,7 +52,7 @@ void parse_args(int argc, char **argv, char **host, char **port, char **mode) {
 }
 
 // function to handle tcp connection
-void tcp(char *host, char *port, char *mode) {
+void tcp(char *host, char *port) {
     // Create socket
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) {
@@ -80,7 +80,6 @@ void tcp(char *host, char *port, char *mode) {
     int bytestx, bytesrx, n;
     char buf[BUFSIZE];
     bzero(buf, BUFSIZE);
-//    fgets(buf, BUFSIZE, stdin);
 
     while (strcmp(buf, "BYE\n") != 0) {
         // clear buffer
