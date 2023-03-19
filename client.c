@@ -107,12 +107,73 @@ void tcp(char *host, char *port) {
     close(sockfd);
 }
 
+void udp(char *host, char *port) {
+    // create socket
+    int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sockfd < 0) {
+        perror("ERROR: socket");
+        exit(1);
+    }
+
+    // get address info
+    struct hostent *server;
+    struct sockaddr_in server_address;
+    server = gethostbyname(host);
+
+    bzero((char *) &server_address, sizeof(server_address));
+    server_address.sin_family = AF_INET;
+    bcopy((char *) server->h_addr, (char *) &server_address.sin_addr.s_addr, server->h_length);
+    server_address.sin_port = htons(atoi(port));
+
+    // send request to server
+    int bytestx, bytesrx, n;
+    char buf[BUFSIZE];
+    char sent_buf[BUFSIZE + 2];
+    bzero(buf, BUFSIZE);
+
+    while (strcmp(buf, "BYE\n") != 0) {
+        // clear buffer
+        bzero(buf, BUFSIZE);
+
+        // Get next line of input
+        fgets(buf, BUFSIZE, stdin);
+        // set opcode
+        sent_buf[0] = 0x00;
+        // set payload length
+        sent_buf[1] = strlen(buf);
+        // set payload data
+        memcpy(sent_buf + 2, buf, strlen(buf));
+
+        bytestx = sendto(sockfd, sent_buf, strlen(buf) + 2, 0, (const struct sockaddr *) &server_address,
+                         sizeof(server_address));
+        if (bytestx < 0)
+            perror("ERROR in sendto");
+
+        // clear buffer
+        bzero(buf, BUFSIZE);
+
+        // receive response from server
+        bytesrx = recvfrom(sockfd, buf, BUFSIZE, 0, NULL, NULL);
+        if (bytesrx < 0)
+            perror("ERROR in recvfrom");
+
+        // get status code
+        int status_code = (int) buf[1];
+        printf("Status code: %d\n", status_code);
+
+        printf("Message from server: %s\n", buf + 2);   // buf + 2 to skip opcode and status code
+    }
+}
 
 int main(int argc, char *argv[]) {
     char *host, *port, *mode;
     parse_args(argc, argv, &host, &port, &mode);
     if (strcmp(mode, "tcp") == 0) {
-        tcp(host, port, mode);
+        tcp(host, port);
+    } else if (strcmp(mode, "udp") == 0) {
+        udp(host, port);
+    } else {
+        fprintf(stderr, "Unknown mode %s", mode);
     }
     return 0;
 }
