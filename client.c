@@ -2,9 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
-#include <sys/types.h>
 #include <netdb.h>
-#include <arpa/inet.h>
 #include <netinet/in.h>
 #include <unistd.h>
 
@@ -52,6 +50,8 @@ void parse_args(int argc, char **argv, char **host, char **port, char **mode) {
 }
 
 // function to handle tcp connection
+// @param host host name
+// @param port port number
 void tcp(char *host, char *port) {
     // Create socket
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -81,9 +81,8 @@ void tcp(char *host, char *port) {
     char buf[BUFSIZE];
     bzero(buf, BUFSIZE);
 
-    while (strcmp(buf, "BYE\n") != 0) {
-        // clear buffer
-        bzero(buf, BUFSIZE);
+    // number of bytes of sent and received data
+    ssize_t bytestx, bytesrx;
 
         // Get next line of input
         fgets(buf, BUFSIZE, stdin);
@@ -107,6 +106,9 @@ void tcp(char *host, char *port) {
     close(sockfd);
 }
 
+// function to handle udp connection
+// @param host host name
+// @param port port number
 void udp(char *host, char *port) {
     // create socket
     int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -135,10 +137,10 @@ void udp(char *host, char *port) {
         // clear buffer
         bzero(buf, BUFSIZE);
 
-        // Get next line of input
-        fgets(buf, BUFSIZE, stdin);
+        // get next line of input
+        fgets(BUF, BUFSIZE, stdin);
         // set opcode
-        sent_buf[0] = 0x00;
+        sent_buf[0] = 0;
         // set payload length
         sent_buf[1] = strlen(buf);
         // set payload data
@@ -157,11 +159,9 @@ void udp(char *host, char *port) {
         if (bytesrx < 0)
             perror("ERROR in recvfrom");
 
-        // get status code
-        int status_code = (int) buf[1];
-        printf("Status code: %d\n", status_code);
-
-        printf("Message from server: %s\n", buf + 2);   // buf + 2 to skip opcode and status code
+        // print response from server
+        int status_code = (int) BUF[1]; // buf[1] is status code
+        printf("%s: %s\n", status_code == 0 ? "OK" : "ERR", BUF + 2); // buf + 2 to skip status code
     }
 }
 
@@ -175,5 +175,6 @@ int main(int argc, char *argv[]) {
     } else {
         fprintf(stderr, "Unknown mode %s", mode);
     }
+
     return 0;
 }
