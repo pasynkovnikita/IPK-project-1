@@ -5,9 +5,25 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <unistd.h>
+#include <signal.h>
 
 #define BUFSIZE 1024
 
+char BUF[BUFSIZE];  // Buffer for sending and receiving data
+int SOCKFD = -1; // Socket is negative until it is created
+char* STATE = "not connected"; // State for handling SIGINT over tcp connection
+
+// Clears buffer
+void clear_buffer() {
+    bzero(BUF, BUFSIZE);
+}
+
+// Parses arguments
+// @param argc number of arguments
+// @param argv array of arguments
+// @param host pointer to host
+// @param port pointer to port
+// @param mode pointer to mode
 void parse_args(int argc, char **argv, char **host, char **port, char **mode) {
     int i;
     *host = NULL;
@@ -53,14 +69,7 @@ void parse_args(int argc, char **argv, char **host, char **port, char **mode) {
 // @param host host name
 // @param port port number
 void tcp(char *host, char *port) {
-    // Create socket
-    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd < 0) {
-        perror("ERROR: socket");
-        exit(1);
-    }
-
-    // Get address info
+    // get address info
     struct hostent *server;
     struct sockaddr_in server_address;
     server = gethostbyname(host);
@@ -70,53 +79,48 @@ void tcp(char *host, char *port) {
     bcopy((char *) server->h_addr, (char *) &server_address.sin_addr.s_addr, server->h_length);
     server_address.sin_port = htons(atoi(port));
 
-    // Send request to server
-    if (connect(sockfd, (const struct sockaddr *) &server_address, sizeof(server_address)) != 0) {
+    // connect to server
+    if (connect(SOCKFD, (const struct sockaddr *) &server_address, sizeof(server_address)) != 0) {
         perror("ERROR: connect");
         exit(EXIT_FAILURE);
     }
 
-    // Send request to server
-    int bytestx, bytesrx, n;
-    char buf[BUFSIZE];
-    bzero(buf, BUFSIZE);
+    // set STATE to connected to handle SIGINT
+    STATE = "connected";
 
     // number of bytes of sent and received data
     ssize_t bytestx, bytesrx;
 
-        // Get next line of input
-        fgets(buf, BUFSIZE, stdin);
+    while (strcmp(BUF, "BYE\n") != 0) {
+        clear_buffer();
 
-        bytestx = send(sockfd, buf, strlen(buf), 0);
+        // get next line of input
+        fgets(BUF, BUFSIZE, stdin);
+
+        // send the message to server
+        bytestx = send(SOCKFD, BUF, strlen(BUF), 0);
         if (bytestx < 0)
-            perror("ERROR in sendto");
+            perror("ERROR in send");
 
-        // clear buffer
-        bzero(buf, BUFSIZE);
+        clear_buffer();
 
-        // Receive response from server
-        bytesrx = recv(sockfd, buf, BUFSIZE, 0);
+        // receive response from server
+        bytesrx = recv(SOCKFD, BUF, BUFSIZE, 0);
         if (bytesrx < 0)
-            perror("ERROR in recvfrom");
+            perror("ERROR in recv");
 
-        printf("Message from server: %s", buf);
+        // print response from server
+        printf("%s", BUF);
     }
 
-    // Close socket
-    close(sockfd);
+    // close socket
+    close(SOCKFD);
 }
 
 // function to handle udp connection
 // @param host host name
 // @param port port number
 void udp(char *host, char *port) {
-    // create socket
-    int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sockfd < 0) {
-        perror("ERROR: socket");
-        exit(1);
-    }
-
     // get address info
     struct hostent *server;
     struct sockaddr_in server_address;
@@ -129,33 +133,30 @@ void udp(char *host, char *port) {
 
     // send request to server
     int bytestx, bytesrx, n;
-    char buf[BUFSIZE];
     char sent_buf[BUFSIZE + 2];
-    bzero(buf, BUFSIZE);
+    clear_buffer();
 
-    while (strcmp(buf, "BYE\n") != 0) {
-        // clear buffer
-        bzero(buf, BUFSIZE);
+    while (strcmp(BUF, "BYE\n") != 0) {
+        clear_buffer();
 
         // get next line of input
         fgets(BUF, BUFSIZE, stdin);
         // set opcode
         sent_buf[0] = 0;
         // set payload length
-        sent_buf[1] = strlen(buf);
+        sent_buf[1] = strlen(BUF);
         // set payload data
-        memcpy(sent_buf + 2, buf, strlen(buf));
+        memcpy(sent_buf + 2, BUF, strlen(BUF));
 
-        bytestx = sendto(sockfd, sent_buf, strlen(buf) + 2, 0, (const struct sockaddr *) &server_address,
+        bytestx = sendto(SOCKFD, sent_buf, strlen(BUF) + 2, 0, (const struct sockaddr *) &server_address,
                          sizeof(server_address));
         if (bytestx < 0)
             perror("ERROR in sendto");
 
-        // clear buffer
-        bzero(buf, BUFSIZE);
+        clear_buffer();
 
         // receive response from server
-        bytesrx = recvfrom(sockfd, buf, BUFSIZE, 0, NULL, NULL);
+        bytesrx = recvfrom(SOCKFD, BUF, BUFSIZE, 0, NULL, NULL);
         if (bytesrx < 0)
             perror("ERROR in recvfrom");
 
@@ -165,9 +166,57 @@ void udp(char *host, char *port) {
     }
 }
 
+
+void sigint_handler() { //Handler for SIGINT
+    //Reset handler to catch SIGINT next time.
+    signal(SIGINT, sigint_handler);
+
+    // if connected over tcp send BYE message and wait for BYE
+    if (strcmp(STATE, "connected") == 0) {
+        int bytestx = send(SOCKFD, "BYE\n", 4, 0);
+        if (bytestx < 0)
+            perror("ERROR in send");
+        printf("\nSent BYE message to server\n");
+
+        int bytesrx = recv(SOCKFD, BUF, BUFSIZE, 0);
+        if (bytesrx < 0)
+            perror("ERROR in recv");
+
+        if (strcmp(BUF, "BYE\n") == 0)
+            printf("Received BYE from server\n");
+    }
+
+    // clear buffer if not empty
+    if (!strcmp(BUF, "")) {
+        clear_buffer();
+    }
+
+    // close socket if it is open
+    if (SOCKFD > 0) {
+        printf("\nClosing socket and exiting...\n");
+        close(SOCKFD);
+    }
+
+
+    fflush(stdout);
+
+    exit(0);
+}
+
 int main(int argc, char *argv[]) {
+    // signal handler for ctrl-c
+    signal(SIGINT, sigint_handler);
+
     char *host, *port, *mode;
     parse_args(argc, argv, &host, &port, &mode);
+
+    // create socket
+    SOCKFD = socket(AF_INET, strcmp(mode, "tcp") == 0 ? SOCK_STREAM : SOCK_DGRAM, 0);
+    if (SOCKFD < 0) {
+        perror("ERROR: socket");
+        exit(1);
+    }
+
     if (strcmp(mode, "tcp") == 0) {
         tcp(host, port);
     } else if (strcmp(mode, "udp") == 0) {
