@@ -4,5 +4,4 @@ run:
 else
 run:
 	gcc client.c -o ipkcpc
-clean:
-	rm ipkcpc
+endif
