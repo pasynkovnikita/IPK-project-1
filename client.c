@@ -1,9 +1,18 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#ifdef __WIN32
+
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <windows.h>
+
+#else
 #include <sys/socket.h>
 #include <netdb.h>
 #include <netinet/in.h>
+#endif
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <signal.h>
 
