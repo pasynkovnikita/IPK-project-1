@@ -76,6 +76,34 @@ void parse_args(int argc, char **argv, char **host, char **port, char **mode) {
     }
 }
 
+
+void handle_timeout() {
+    fd_set read_fds;
+    struct timeval tv;
+    int num_bytes, addr_len;
+
+    // Set up the file descriptor set and timeout
+    FD_ZERO(&read_fds);
+    FD_SET(SOCKFD, &read_fds);
+    tv.tv_sec = 30;  // timeout in seconds
+    tv.tv_usec = 0;
+
+    // Wait for data or timeout
+    int select_result = select(SOCKFD + 1, &read_fds, NULL, NULL, &tv);
+
+    if (select_result == -1) {
+        perror("ERROR in select");
+        return;
+    } else if (select_result == 0) {
+        // If there was a timeout, close the socket, clear the buffer and exit
+        printf("Timeout reached.\n");
+        printf("Closing socket and exiting...\n");
+        clear_buffer();
+        close(SOCKFD);
+        exit(0);
+    }
+}
+
 // function to handle tcp connection
 // @param host host name
 // @param port port number
@@ -114,6 +142,9 @@ void tcp(char *host, char *port) {
             perror("ERROR in send");
 
         clear_buffer();
+
+        // timeout if no response from server
+        handle_timeout();
 
         // receive response from server
         bytesrx = recv(SOCKFD, BUF, BUFSIZE, 0);
@@ -165,6 +196,9 @@ void udp(char *host, char *port) {
             perror("ERROR in sendto");
 
         clear_buffer();
+
+        // timeout if no response from server
+        handle_timeout();
 
         // receive response from server
         bytesrx = recvfrom(SOCKFD, BUF, BUFSIZE, 0, NULL, NULL);
