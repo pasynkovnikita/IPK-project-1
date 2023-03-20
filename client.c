@@ -26,7 +26,7 @@ char *STATE = "not connected"; // State for handling SIGINT over tcp connection
 
 // Clears buffer
 void clear_buffer() {
-    bzero(BUF, BUFSIZE);
+    memset(BUF, 0, BUFSIZE);
 }
 
 // Parses arguments
@@ -85,9 +85,9 @@ void tcp(char *host, char *port) {
     struct sockaddr_in server_address;
     server = gethostbyname(host);
 
-    bzero((char *) &server_address, sizeof(server_address));
+    memset((char *) &server_address, 0, sizeof(server_address));
     server_address.sin_family = AF_INET;
-    bcopy((char *) server->h_addr, (char *) &server_address.sin_addr.s_addr, server->h_length);
+    memcpy((char *) &server_address.sin_addr.s_addr, (char *) server->h_addr, server->h_length);
     server_address.sin_port = htons(atoi(port));
 
     // connect to server
