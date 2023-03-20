@@ -5,9 +5,11 @@
 #include <windows.h>
 
 #else
+
 #include <sys/socket.h>
 #include <netdb.h>
 #include <netinet/in.h>
+
 #endif
 
 #include <stdio.h>
@@ -20,7 +22,7 @@
 
 char BUF[BUFSIZE];  // Buffer for sending and receiving data
 int SOCKFD = -1; // Socket is negative until it is created
-char* STATE = "not connected"; // State for handling SIGINT over tcp connection
+char *STATE = "not connected"; // State for handling SIGINT over tcp connection
 
 // Clears buffer
 void clear_buffer() {
@@ -141,11 +143,11 @@ void udp(char *host, char *port) {
     server_address.sin_port = htons(atoi(port));
 
     // send request to server
-    int bytestx, bytesrx, n;
+    int bytestx, bytesrx;
     char sent_buf[BUFSIZE + 2];
     clear_buffer();
 
-    while (strcmp(BUF, "BYE\n") != 0) {
+    while (1) {
         clear_buffer();
 
         // get next line of input
