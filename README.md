@@ -43,6 +43,12 @@ Wrong input:
     xpasyn00@merlin: ~/ipk-project-1$ ./ipkcpc -h 127.0.0.1 -p 10002 -m qwerty
     Unknown mode: qwerty
 
+    xpasyn00@merlin: ~/ipk-project-1$ ./ipkcpc  -h 147.229.176.19 -p abcd -m udp
+    Invalid port number
+
+    xpasyn00@merlin: ~/ipk-project-1$ ./ipkcpc  -h 147.229.176.256 -p 10002 -m udp
+    Invalid host name
+
 
 Connection via TCP:
 
