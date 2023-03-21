@@ -17,6 +17,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <signal.h>
+#include <arpa/inet.h>
 
 #define BUFSIZE 1024
 
@@ -44,6 +45,14 @@ void parse_args(int argc, char **argv, char **host, char **port, char **mode) {
         if (strcmp(argv[i], "-h") == 0) {
             if (i + 1 < argc) {
                 *host = argv[i + 1];
+
+                // validate host name
+                struct sockaddr_in server_address;
+                if (inet_pton(AF_INET, *host, &server_address.sin_addr) <= 0) {
+                    fprintf(stderr, "Invalid host name\n");
+                    exit(1);
+                }
+
                 i++;
             } else {
                 fprintf(stderr, "Missing argument for option -h\n");
@@ -52,6 +61,13 @@ void parse_args(int argc, char **argv, char **host, char **port, char **mode) {
         } else if (strcmp(argv[i], "-p") == 0) {
             if (i + 1 < argc) {
                 *port = argv[i + 1];
+
+                // validate port number
+                if (atoi(*port) < 0 || atoi(*port) > 65535) {
+                    fprintf(stderr, "Invalid port number\n");
+                    exit(1);
+                }
+
                 i++;
             } else {
                 fprintf(stderr, "Missing argument for option -p\n");
