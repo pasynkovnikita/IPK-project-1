@@ -190,7 +190,7 @@ void udp(char *host, char *port) {
     server_address.sin_port = htons(atoi(port));
 
     // send request to server
-    int bytestx, bytesrx;
+    ssize_t bytestx, bytesrx;
     char sent_buf[BUFSIZE + 2];
     clear_buffer();
 
