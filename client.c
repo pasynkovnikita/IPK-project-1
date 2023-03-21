@@ -211,7 +211,7 @@ void udp(char *host, char *port) {
     }
 }
 
-
+// function to handle signal interrupt
 void sigint_handler() { //Handler for SIGINT
     //Reset handler to catch SIGINT next time.
     signal(SIGINT, sigint_handler);
