@@ -267,7 +267,7 @@ int main(int argc, char *argv[]) {
     } else if (strcmp(mode, "udp") == 0) {
         udp(host, port);
     } else {
-        fprintf(stderr, "Unknown mode %s", mode);
+        fprintf(stderr, "Unknown mode: %s\n", mode);
     }
 
     return 0;
